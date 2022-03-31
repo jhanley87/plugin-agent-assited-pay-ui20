@@ -2,7 +2,9 @@ import React from 'react';
 import * as Flex from '@twilio/flex-ui';
 import { FlexPlugin } from '@twilio/flex-plugin';
 
-import CustomTaskListContainer from './components/CustomTaskList/CustomTaskList.Container';
+import PaymentUi from "./components/PaymentUi/PaymentUi";
+
+
 import reducers, { namespace } from './states';
 
 const PLUGIN_NAME = 'Pay20Plugin';
@@ -23,7 +25,7 @@ export default class Pay20Plugin extends FlexPlugin {
     this.registerReducers(manager);
 
     const options: Flex.ContentFragmentProps = { sortOrder: -1 };
-    flex.AgentDesktopView.Panel1.Content.add(<CustomTaskListContainer key="Pay20Plugin-component" />, options);
+    flex.AgentDesktopView.Panel2.Content.replace(<PaymentUi key="PaymentUi" />, options);
   }
 
   /**
