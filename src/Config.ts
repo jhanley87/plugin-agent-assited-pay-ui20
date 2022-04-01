@@ -1,3 +1,3 @@
 export default {
-    backendBaseUri: process.env.BACKEND_BASE_URI ?? '',
+    backendBaseUri: process.env.REACT_APP_BACKEND_BASE_URI ?? '',
 }

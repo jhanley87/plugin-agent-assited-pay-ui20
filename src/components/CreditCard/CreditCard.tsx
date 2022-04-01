@@ -1,12 +1,21 @@
 import React from "react";
 import { Box, Text, Grid, Column, Button } from "@twilio-paste/core";
+import { Theme } from "@twilio-paste/core/theme";
 
-import { creditCardBaseStyles, logoStyles } from "./CreditCard.Styles";
+import {
+  creditCardBaseStyles,
+  logoStyles,
+  blinkText,
+} from "./CreditCard.Styles";
+import { PayCaptureParameter } from "common/PayCaptureParameter";
 interface OwnProps {
   // Props passed directly to the component
-  creditCardNumber: string;
-  expiryDate: string;
-  securityCode: string;
+  creditCardNumber?: string;
+  expiryDate?: string;
+  securityCode?: string;
+  currentCapture?: PayCaptureParameter;
+  captureInProgress?: boolean
+  hasError: boolean
 }
 
 interface CreditCardState {}
@@ -28,15 +37,20 @@ export default class CreditCard extends React.Component<
   };
 
   cardNumberFormatted = () => {
-    if (this.props.creditCardNumber === "") return "XXXX XXXX XXXX XXXX";
+    if (!this.props.creditCardNumber || this.props.creditCardNumber === "") return "XXXX XXXX XXXX XXXX";
     const formatted = this.props.creditCardNumber.match(/.{1,4}/g);
     return formatted?.join(" ");
   };
 
   expiryDateFormatted = () => {
-    if (this.props.expiryDate === "") return "XX/XX";
+    if (!this.props.expiryDate || this.props.expiryDate === "") return "XX/XX";
     const formatted = this.props.expiryDate.match(/.{1,2}/g);
     return formatted?.join("/");
+  };
+
+  securityCodeFormatted = () => {
+    if (!this.props.securityCode || this.props.securityCode === "") return "XXX";
+    return this.props.securityCode;
   };
 
   render() {
@@ -60,7 +74,13 @@ export default class CreditCard extends React.Component<
                 fontSize="fontSize80"
                 padding="space70"
                 fontFamily="fontFamilyCode"
-                color="colorTextInverse"
+                color={this.props.hasError && this.props.currentCapture === "payment-card-number"  ? "colorTextErrorStrong" : "colorTextInverse"}
+                className={
+                  this.props.currentCapture && this.props.currentCapture === "payment-card-number" && this.props.captureInProgress
+                    ? blinkText
+                    : ""
+                }
+                key={this.props.currentCapture}
               >
                 {this.cardNumberFormatted()}
               </Text>
@@ -71,7 +91,12 @@ export default class CreditCard extends React.Component<
                 fontSize="fontSize40"
                 padding="space70"
                 fontFamily="fontFamilyCode"
-                color="colorTextInverse"
+                color={this.props.hasError && this.props.currentCapture === "expiration-date"  ? "colorTextErrorStrong" : "colorTextInverse"}
+                className={
+                  this.props.currentCapture && this.props.currentCapture === "expiration-date" && this.props.captureInProgress
+                    ? blinkText
+                    : ""
+                }
               >
                 Expiry: {this.expiryDateFormatted()}
               </Text>
@@ -95,8 +120,15 @@ export default class CreditCard extends React.Component<
               margin="space20"
               width="75%"
             >
-              <Text as="p" textAlign="right">
-                XXX
+              <Text
+                as="p"
+                textAlign="right"
+                color={this.props.hasError && this.props.currentCapture === "security-code"  ? "colorTextErrorStrong" : "colorText"}
+                className={
+                  this.props.currentCapture && this.props.currentCapture === "security-code" && this.props.captureInProgress ? blinkText : ""
+                }
+              >
+                {this.securityCodeFormatted()}
               </Text>
             </Box>
           </Box>

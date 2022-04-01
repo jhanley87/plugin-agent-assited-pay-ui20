@@ -1,4 +1,4 @@
-import { css } from "@emotion/css";
+import { css, keyframes } from "@emotion/css";
 
 export const creditCardBaseStyles = css`
   background-image: url("https://image.ibb.co/bVnMrc/g3095.png"),
@@ -17,4 +17,15 @@ export const creditCardBaseStyles = css`
 
 export const logoStyles = css`
   width: 15%;
+`;
+
+const blinker = keyframes`
+  50% {
+    opacity: 0;
+  }
+
+`;
+
+export const blinkText = css`
+  animation: ${blinker} 1.5s linear infinite;
 `;

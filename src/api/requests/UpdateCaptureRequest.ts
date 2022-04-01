@@ -1,11 +1,7 @@
+import { PayCaptureParameter } from "common/PayCaptureParameter";
+
 export default interface UpdateCaptureRequest {
-  Capturing:
-    | "payment-card-number"
-    | "expiration-date"
-    | "security-code"
-    | "postal-code"
-    | "bank-routing-number"
-    | "bank-account-number";
+  Capturing: PayCaptureParameter;
   PaymentSid: string;
   IdempotencyKey: string;
   CallSid: string;

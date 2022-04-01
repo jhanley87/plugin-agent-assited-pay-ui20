@@ -1,13 +1,12 @@
-import React from 'react';
-import * as Flex from '@twilio/flex-ui';
-import { FlexPlugin } from '@twilio/flex-plugin';
+import React from "react";
+import * as Flex from "@twilio/flex-ui";
+import { FlexPlugin } from "@twilio/flex-plugin";
 
-import PaymentUi from "./components/PaymentUi/PaymentUi";
+import { PaymentUi } from "./components/PaymentUi/PaymentUi";
 
+import reducers, { namespace } from "./states";
 
-import reducers, { namespace } from './states';
-
-const PLUGIN_NAME = 'Pay20Plugin';
+const PLUGIN_NAME = "Pay20Plugin";
 
 export default class Pay20Plugin extends FlexPlugin {
   constructor() {
@@ -25,7 +24,10 @@ export default class Pay20Plugin extends FlexPlugin {
     this.registerReducers(manager);
 
     const options: Flex.ContentFragmentProps = { sortOrder: -1 };
-    flex.AgentDesktopView.Panel2.Content.replace(<PaymentUi key="PaymentUi" />, options);
+    flex.AgentDesktopView.Panel2.Content.replace(
+      <PaymentUi key="PaymentUi" />,
+      options
+    );
   }
 
   /**
@@ -34,20 +36,22 @@ export default class Pay20Plugin extends FlexPlugin {
    * @param manager { Flex.Manager }
    */
   private registerReducers(manager: Flex.Manager) {
-    if(manager.store){
-      const store = manager.store as EnhancedStore
+    if (manager.store) {
+      const store = manager.store as EnhancedStore;
       if (!store.addReducer) {
         // eslint-disable-next-line
-        console.error(`You need FlexUI > 1.9.0 to use built-in redux; you are currently on ${Flex.VERSION}`);
+        console.error(
+          `You need FlexUI > 1.9.0 to use built-in redux; you are currently on ${Flex.VERSION}`
+        );
         return;
       }
-  
+
       store.addReducer(namespace, reducers);
     }
   }
 }
 
-import {Store, Reducer} from "redux"
+import { Store, Reducer } from "redux";
 export interface EnhancedStore<S = any> extends Store<S> {
-    addReducer?: (name: string, _reducer: Reducer<any>) => void;
+  addReducer?: (name: string, _reducer: Reducer<any>) => void;
 }
