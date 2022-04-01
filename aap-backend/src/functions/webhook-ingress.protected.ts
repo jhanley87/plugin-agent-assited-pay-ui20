@@ -45,9 +45,9 @@ export const handler: ServerlessFunctionSignature = async function (
       `list item created ${syncListItem.listSid}. Beginning pay session`
     );
 
-    callback(null, CorsResponse.Create(syncListItem));
+    callback(null, CorsResponse.Create(syncListItem, 200));
   } catch (error) {
     console.error("Error creating SyncList item", error);
-    callback(CorsResponse.Create(error), undefined);
+    callback(CorsResponse.Create(error, 500), undefined);
   }
 };

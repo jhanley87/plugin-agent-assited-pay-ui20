@@ -7,9 +7,9 @@ import {
   ServerlessFunctionSignature,
 } from "@twilio-labs/serverless-runtime-types/types";
 
-import { functionValidator, HandlerFn } from "twilio-flex-token-validator";
-import { PaymentListInstanceCreateOptions, PaymentPaymentMethod } from "twilio/lib/rest/api/v2010/account/call/payment";
+import { validator } from "twilio-flex-token-validator";
 import { PayTokenType } from "twilio/lib/twiml/VoiceResponse";
+import { PaymentListInstanceCreateOptions, PaymentPaymentMethod } from "twilio/lib/rest/api/v2010/account/call/payment";
 import CorsResponse from "../utility/cors-response";
 
 type MyEvent = {
@@ -21,6 +21,7 @@ type MyEvent = {
   Description: string;
   Timout?: number;
   CallSid: string;
+  Token: string
 };
 
 // If you want to use environment variables, you will need to type them like
@@ -29,18 +30,21 @@ type MyEvent = {
 type MyContext = {
   PAYMENT_CONNECTOR: string;
   SYNC_SERVICE_SID: string;
+  ACCOUNT_SID: string;
+  AUTH_TOKEN: string;
+  NGROK_ENDPOINT: string;
 };
 
-export const handler: HandlerFn = functionValidator(
-  () =>
-    async (
-      context: Context<MyContext>,
-      event: MyEvent,
-      callback: ServerlessCallback
-    ) => {
-      //twilio serverless:logs --tail
+export const handler: ServerlessFunctionSignature<MyContext,MyEvent> = async function (
+  context: Context<MyContext>,
+  event: MyEvent,
+  callback: ServerlessCallback
+) {
+  
+  try{
+    await validator(event.Token ?? '', context.ACCOUNT_SID ?? '', context.AUTH_TOKEN ?? '');
 
-      const client = context.getTwilioClient();
+    const client = context.getTwilioClient();
 
       //the default timeout for time between keypad presses
       const defaultTimeout = 5;
@@ -54,7 +58,7 @@ export const handler: HandlerFn = functionValidator(
         idempotencyKey: event.IdempotencyKey,
         paymentConnector: context.PAYMENT_CONNECTOR,
         postalCode: false,
-        statusCallback: "https://" + context.DOMAIN_NAME + "/webhook-ingress",
+        statusCallback: `https://${context.NGROK_ENDPOINT === '' ? context.DOMAIN_NAME : context.NGROK_ENDPOINT}/webhook-ingress`,
         currency: event.Currency,
         validCardTypes: "visa mastercard amex",
         paymentMethod: event.PaymentMethod,
@@ -62,7 +66,7 @@ export const handler: HandlerFn = functionValidator(
         timeout: event.Timout ?? defaultTimeout,
         tokenType: event.TokenType
       };
-
+      console.log("optinos", paymentOptions)
       try {
         const syncList = await client.sync
           .services(context.SYNC_SERVICE_SID)
@@ -80,14 +84,20 @@ export const handler: HandlerFn = functionValidator(
 
           console.log(`Payment created ${payment.sid}`);
 
-          callback(null, CorsResponse.Create(payment));
+          const resp = CorsResponse.Create(payment, 200);
+          console.log("response", resp);
+
+          callback(null, CorsResponse.Create(payment, 200));
         } catch (error) {
           console.log("Error creating the pay session", error);
-          callback(CorsResponse.Create(error), undefined);
+          callback(null, CorsResponse.Create(error, 500));
         }
       } catch (error) {
         console.error("Error creating SyncList", error);
-        callback(CorsResponse.Create(error), undefined);
+        callback(null, CorsResponse.Create(error, 500));
       }
-    }
-);
+  }
+  catch(error){
+    callback(null, CorsResponse.Create(error, 403));
+  }
+};

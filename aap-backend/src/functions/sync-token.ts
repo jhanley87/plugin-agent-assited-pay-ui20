@@ -7,19 +7,13 @@ import {
   ServerlessFunctionSignature,
 } from "@twilio-labs/serverless-runtime-types/types";
 
-import { functionValidator, HandlerFn } from "twilio-flex-token-validator";
 import { SyncGrant } from "twilio/lib/jwt/AccessToken";
-import { PaymentPaymentMethod } from "twilio/lib/rest/api/v2010/account/call/payment";
+import { validator } from "twilio-flex-token-validator";
 import CorsResponse from "../utility/cors-response";
 
 type MyEvent = {
-  ChargeAmount: number;
-  IdempotencyKey: string;
-  Currency: string;
-  PaymentMethod: PaymentPaymentMethod;
-  Description: string;
-  Timout?: number;
-  CallSid: string;
+  identity: string;
+  Token: string;
 };
 
 // If you want to use environment variables, you will need to type them like
@@ -30,32 +24,48 @@ type MyContext = {
   SYNC_SERVICE_SID: string;
   TWILIO_API_SECRET: string;
   ACCOUNT_SID: string;
+  AUTH_TOKEN: string;
 };
 
-export const handler: HandlerFn = functionValidator(
-  () =>
-    async (
-      context: Context<MyContext>,
-      event: MyEvent,
-      callback: ServerlessCallback
-    ) => {
-      //twilio serverless:logs --tail
-      console.log("starting execution", event);
-
-      //todo: fix this so that it gets the identity of the flex user
-      const IDENTITY = "only for testing";
-
-      const accessToken = new Twilio.jwt.AccessToken(
-        context.ACCOUNT_SID,
-        context.TWILIO_API_KEY,
-        context.TWILIO_API_SECRET
+export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
+  async function (
+    context: Context<MyContext>,
+    event: MyEvent,
+    callback: ServerlessCallback
+  ) {
+    try {
+      await validator(
+        event.Token ?? "",
+        context.ACCOUNT_SID ?? "",
+        context.AUTH_TOKEN ?? ""
       );
 
-      accessToken.addGrant(
-        new SyncGrant({ serviceSid: context.SYNC_SERVICE_SID })
-      );
-      accessToken.identity = IDENTITY;
+      try {
+        console.log("starting execution", event);
 
-      callback(null, CorsResponse.Create({ token: accessToken.toJwt() }));
+        const IDENTITY = event.identity;
+
+        const accessToken = new Twilio.jwt.AccessToken(
+          context.ACCOUNT_SID,
+          context.TWILIO_API_KEY,
+          context.TWILIO_API_SECRET
+        );
+
+        accessToken.addGrant(
+          new SyncGrant({ serviceSid: context.SYNC_SERVICE_SID })
+        );
+        accessToken.identity = IDENTITY;
+
+        callback(
+          null,
+          CorsResponse.Create({ token: accessToken.toJwt() }, 200)
+        );
+      } catch (error) {
+        const resp = CorsResponse.Create(error, 500);
+        callback(null, resp);
+      }
+    } catch (error) {
+      const resp = CorsResponse.Create(error, 403);
+      callback(null, resp);
     }
-);
+  };
