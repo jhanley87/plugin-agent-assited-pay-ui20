@@ -14,14 +14,20 @@ interface TokenTypeOption {
   val: "one-time" | "reusable";
 }
 
+interface PaySessionType {
+  label: string;
+  val: "payment" | "tokenisation";
+}
+
 interface OwnProps {
-    handleSubmit: (initFormValues: InitFormState) => void;
+  handleSubmit: (initFormValues: InitFormState) => void;
 }
 
 export interface InitFormState {
   description: string;
   amount: number;
   selectedTokenType: TokenTypeOption;
+  selectedPaySessionType: PaySessionType;
 }
 
 // Props should be a combination of StateToProps, DispatchToProps, and OwnProps
@@ -34,14 +40,20 @@ export default class InitForm extends React.Component<Props, InitFormState> {
   }
 
   readonly tokenTypes: TokenTypeOption[] = [
-    { label: "One Time", val: "one-time" },
     { label: "Reusable", val: "reusable" },
+    { label: "One Time", val: "one-time" },
+  ];
+
+  readonly paySessionTypes: PaySessionType[] = [
+    { label: "Payment", val: "payment" },
+    { label: "Tokenisation", val: "tokenisation" },
   ];
 
   readonly state: InitFormState = {
     description: "",
     amount: 0,
     selectedTokenType: this.tokenTypes[0],
+    selectedPaySessionType: this.paySessionTypes[0],
   };
 
   onChange = (e: any) =>
@@ -49,6 +61,10 @@ export default class InitForm extends React.Component<Props, InitFormState> {
 
   onTokenTypeChange = (val: any) => {
     this.setState({ ...this.state, selectedTokenType: val.selectedItem });
+  };
+
+  onPaySessionTypeChange = (val: any) => {
+    this.setState({ ...this.state, selectedPaySessionType: val.selectedItem });
   };
 
   handleSubmit = () => {
@@ -61,17 +77,33 @@ export default class InitForm extends React.Component<Props, InitFormState> {
       <Box padding="space30">
         <Box padding="space20">
           <Combobox
-            items={this.tokenTypes}
-            labelText="Type of payment"
+            items={this.paySessionTypes}
+            labelText="Capture payment for"
             optionTemplate={(item) => <Text as="p">{item.label}</Text>}
-            onSelectedItemChange={this.onTokenTypeChange}
-            initialSelectedItem={this.state.selectedTokenType}
+            onSelectedItemChange={this.onPaySessionTypeChange}
+            initialSelectedItem={this.state.selectedPaySessionType}
             itemToString={(item: TokenTypeOption) => {
               return item.label;
             }}
           />
         </Box>
-        {this.state.selectedTokenType.val === "one-time" ? (
+        {this.state.selectedPaySessionType.val === "tokenisation" ? (
+          <Box padding="space20">
+            <Combobox
+              items={this.tokenTypes}
+              labelText="Type of token"
+              optionTemplate={(item) => <Text as="p">{item.label}</Text>}
+              onSelectedItemChange={this.onTokenTypeChange}
+              initialSelectedItem={this.state.selectedTokenType}
+              itemToString={(item: TokenTypeOption) => {
+                return item.label;
+              }}
+            />
+          </Box>
+        ) : (
+          ""
+        )}
+        {this.state.selectedPaySessionType.val === "payment" ? (
           <Box>
             <Box padding="space20">
               <Label htmlFor="description" required>
@@ -104,10 +136,9 @@ export default class InitForm extends React.Component<Props, InitFormState> {
         ) : (
           ""
         )}
-
         <Box padding="space20">
           <Button variant="primary" onClick={this.handleSubmit} fullWidth>
-            Start Payment
+            Start
           </Button>
         </Box>
       </Box>

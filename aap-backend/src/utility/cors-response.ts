@@ -1,7 +1,5 @@
 export default class CorsResponse {
-    public static Create(originalResponse: any, statusCode:number) {
-        console.debug("Original Response", originalResponse);
-        
+    public static Create(originalResponse: any, statusCode:number) {        
         const corsHeaders = {
             'Access-Control-Allow-Origin' : '*',
             'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',

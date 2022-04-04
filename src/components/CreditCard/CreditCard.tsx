@@ -37,19 +37,19 @@ export default class CreditCard extends React.Component<
   };
 
   cardNumberFormatted = () => {
-    if (!this.props.creditCardNumber || this.props.creditCardNumber === "") return "XXXX XXXX XXXX XXXX";
+    if (!this.props.creditCardNumber || this.props.creditCardNumber === "") return "**** **** **** ****";
     const formatted = this.props.creditCardNumber.match(/.{1,4}/g);
     return formatted?.join(" ");
   };
 
   expiryDateFormatted = () => {
-    if (!this.props.expiryDate || this.props.expiryDate === "") return "XX/XX";
+    if (!this.props.expiryDate || this.props.expiryDate === "") return "**/**";
     const formatted = this.props.expiryDate.match(/.{1,2}/g);
     return formatted?.join("/");
   };
 
   securityCodeFormatted = () => {
-    if (!this.props.securityCode || this.props.securityCode === "") return "XXX";
+    if (!this.props.securityCode || this.props.securityCode === "") return "***";
     return this.props.securityCode;
   };
 

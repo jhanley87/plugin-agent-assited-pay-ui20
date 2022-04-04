@@ -1,7 +1,7 @@
 import { css, keyframes } from "@emotion/css";
 
 export const creditCardBaseStyles = css`
-  background-image: url("https://image.ibb.co/bVnMrc/g3095.png"),
+  background-image:
     linear-gradient(
       to right bottom,
       #001489,

@@ -1,13 +1,24 @@
 import axios from "axios";
 import ApiRequests from "./requests/ApiRequests";
 import BeginPayRequest from "./requests/BeginPayRequest";
+import CancelPayRequest from "./requests/CancelPayRequest";
 import CompletePayRequest from "./requests/CompletePayRequest";
 import UpdateCaptureRequest from "./requests/UpdateCaptureRequest";
 import SyncTokenResponse from "./responses/SyncTokenResponse";
 export default class Api {
+
   public async BeginPaySession(input: BeginPayRequest) {
     const resp = await this.postApiRequest<PaymentResponse>(
       ApiRequests.BeginPay,
+      input
+    );
+
+    return resp;
+  }
+
+  public async CancelPaySession(input: CancelPayRequest) {
+    const resp = await this.postApiRequest<PaymentResponse>(
+      ApiRequests.CancelPay,
       input
     );
 

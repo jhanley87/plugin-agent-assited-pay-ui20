@@ -8,4 +8,5 @@ export default class ApiRequests {
     public static CompletePay: string = `${this.baseUri}/complete-pay-session`;
     public static SyncToken: string = `${this.baseUri}/sync-token`;
     public static WebhookIngress: string = `${this.baseUri}/webhook-ingress`;
+    public static CancelPay: string = `${this.baseUri}/cancel-pay-session`;
 }

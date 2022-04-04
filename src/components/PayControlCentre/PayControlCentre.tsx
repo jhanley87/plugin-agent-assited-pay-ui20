@@ -3,7 +3,9 @@ import { Box, Stack, Button, Grid, Column } from "@twilio-paste/core";
 import { PayCaptureParameter } from "common/PayCaptureParameter";
 
 interface OwnProps {
-  handleChangeCapture: (paramToCapture: PayCaptureParameter) => void;
+  onChangeCapture: (paramToCapture: PayCaptureParameter) => void;
+  onCompletePayment: () => void;
+  onCancelPayment: () => void;
   canComplete: boolean;
 }
 
@@ -28,20 +30,27 @@ export default class InitForm extends React.Component<
   };
 
   handleCaptureCardNumber = () => {
-    this.props.handleChangeCapture("payment-card-number");
+    this.props.onChangeCapture("payment-card-number");
   };
   handleCaptureExpiry = () => {
-    this.props.handleChangeCapture("expiration-date");
+    this.props.onChangeCapture("expiration-date");
   };
   handleCaptureSecurityCode = () => {
-    this.props.handleChangeCapture("security-code");
+    this.props.onChangeCapture("security-code");
+  };
+
+  handleCancelPayment = () => {
+    this.props.onCancelPayment();
+  };
+  handleCompletePayment = () => {
+    this.props.onCompletePayment();
   };
 
   render() {
     return (
       <Box padding="space30">
-        <Grid gutter="space20">
-          <Column span={3}>
+        <Grid gutter="space20" equalColumnHeights>
+          <Column span={2} offset={1}>
             <Button
               variant="secondary"
               onClick={this.handleCaptureCardNumber}
@@ -50,7 +59,7 @@ export default class InitForm extends React.Component<
               Capture Card Number
             </Button>
           </Column>
-          <Column span={3}>
+          <Column span={2}>
             <Button
               variant="secondary"
               onClick={this.handleCaptureExpiry}
@@ -59,7 +68,7 @@ export default class InitForm extends React.Component<
               Capture Expiry
             </Button>
           </Column>
-          <Column span={3}>
+          <Column span={2}>
             <Button
               variant="secondary"
               onClick={this.handleCaptureSecurityCode}
@@ -68,10 +77,20 @@ export default class InitForm extends React.Component<
               Capture Security Code
             </Button>
           </Column>
-          <Column span={3}>
+          <Column span={2}>
+            <Button
+              variant="primary"
+              onClick={this.handleCancelPayment}
+              fullWidth
+            >
+              Cancel
+            </Button>
+          </Column>
+          <Column span={2}>
             <Button
               variant="primary"
               disabled={this.props.canComplete}
+              onClick={this.handleCompletePayment}
               fullWidth
             >
               Complete

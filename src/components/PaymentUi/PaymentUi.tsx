@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import CreditCard from "../CreditCard/CreditCard";
-import { Grid, Column, Box } from "@twilio-paste/core";
+import { Grid, Column, Spinner, Toaster, useToaster, Text, Box } from "@twilio-paste/core";
 import { Theme } from "@twilio-paste/core/theme";
 import InitForm, { InitFormState } from "../InitForm/InitForm";
 import ApiClient from "../../api/Api";
@@ -9,55 +9,71 @@ import { v4 as uuidv4, v4 } from "uuid";
 import PayControlCentre from "../PayControlCentre/PayControlCentre";
 import { PayCaptureParameter } from "common/PayCaptureParameter";
 import { SyncClient } from "twilio-sync";
+import BeginPayRequest from "api/requests/BeginPayRequest";
+import AgentAssistedPayEvent from "../../common/AgentAssistedPayEvent";
 
-interface AgentAssistedPayEvent {
-  AccountSid: string;
-  CallSid: string;
-  DateCreated: string;
-  PaymentConnector: string;
-  PaymentMethod: string;
-  Sid: string;
-  TokenType: string;
-  Capture: PayCaptureParameter;
-  PaymentCardNumber: string;
-  ExpirationDate: string;
-  SecurityCode: string;
-  PartialResult: boolean;
-  ErrorType: string;
-  Required: string;
-}
+type Step = "in-progress" | "not-started" | "loading";
 
 interface OwnProps {
   // Props passed directly to the component
 }
 
-interface PaymentUiState {
-  currentCapture?: PayCaptureParameter;
-  syncToken: string;
-  aapEvents: AgentAssistedPayEvent[];
-  latestAapState?: AgentAssistedPayEvent;
-}
-
 // Props should be a combination of StateToProps, DispatchToProps, and OwnProps
 type Props = OwnProps & TaskContextProps;
 
-// It is recommended to keep components stateless and use redux for managing states
-class PaymentUiComponent extends React.PureComponent<Props, PaymentUiState> {
-  constructor(props: Props) {
-    super(props);
-  }
+const paymentUiComponent: React.FC<Props> = (props) => {
+  const apiClient = new ApiClient();
+  const toaster = useToaster();
+  const [syncToken, setSyncToken] = useState<string>("");
+  const [aapEvents, setAapEvents] = useState<AgentAssistedPayEvent[]>([]);
+  const [latestAapState, setLatestAapState] = useState<
+    AgentAssistedPayEvent | undefined
+  >(undefined);
+  const [step, setStep] = useState<Step>("not-started");
 
-  readonly apiClient = new ApiClient();
-
-  getSyncToken = async () => {
-    const tokenResponse = await this.apiClient.GetSyncToken("Jordan");
-    this.setState({ ...this.state, syncToken: tokenResponse.token });
+  const getSyncToken = async () => {
+    const tokenResponse = await apiClient.GetSyncToken("Jordan");
+    setSyncToken(tokenResponse.token);
+    return tokenResponse.token;
   };
 
-  subscribeToSyncList = async (token: string) => {
+  const addPaymentEventToState = (item: AgentAssistedPayEvent) => {
+    console.debug("aap event added", item);
+    setAapEvents([...aapEvents, item]);
+
+    setLatestAapState({ ...item });
+
+    //check if this is the end of the payment
+    if (item?.Result) {
+      manageCompletion(item);
+    }
+  };
+
+  const manageCompletion = (resultObj: AgentAssistedPayEvent) => {
+    if (resultObj.Result === "success") {
+      toaster.push({
+        message: `Success! Your reference is ${resultObj.PaymentConfirmationCode} ${resultObj.PaymentToken ? "Token: " + resultObj.PaymentToken : ""}`,
+        variant: "success",
+      });
+    } 
+    else if(resultObj.Result === "transaction-cancelled") {
+      toaster.push({
+        message: `Transaction cancelled`,
+        variant: "neutral",
+      });
+    }
+    else {
+      toaster.push({
+        message: `Oh no! This transaction was unsuccessful error: ${resultObj.PaymentError}`,
+        variant: "error",
+      });
+    }
+  }
+
+  const subscribeToSyncList = async (token: string) => {
     const syncClient = new SyncClient(token);
     const listForPayment = await syncClient.list(
-      `aap:${this.props.task?.attributes.call_sid}`
+      `aap:${props.task?.attributes.call_sid}`
     );
 
     const paginator = await listForPayment.getItems({
@@ -66,95 +82,128 @@ class PaymentUiComponent extends React.PureComponent<Props, PaymentUiState> {
       limit: 1000,
     });
 
-    paginator.items.forEach((item) => this.addPaymentEventToState(item.data));
+    paginator.items.forEach((item) => addPaymentEventToState(item.data as AgentAssistedPayEvent));
 
     listForPayment.on("itemAdded", (syncListItem) =>
-      this.addPaymentEventToState(syncListItem.item.data)
+      addPaymentEventToState(syncListItem.item.data)
     );
 
     syncClient.on("tokenAboutToExpire", async () => {
-      await this.getSyncToken();
-      syncClient.updateToken(this.state.syncToken);
+      var token = await getSyncToken();
+      syncClient.updateToken(token);
     });
   };
 
-  addPaymentEventToState = (item: any) => {
-    console.debug("aap event added", item);
-    this.setState({
-      ...this.state,
-      aapEvents: [...this.state.aapEvents, item],
-    });
-    this.setState({ ...this.state, latestAapState: this.latestAapEvent() });
+  const handleStartPayment = async (stateFromInitForm: InitFormState) => {
+    setStep("loading");
+    try{
+
+      const input: BeginPayRequest = {
+        CallSid: props.task?.attributes.call_sid,
+        ChargeAmount:
+          stateFromInitForm.selectedPaySessionType.val === "payment"
+            ? stateFromInitForm.amount
+            : undefined,
+        Description: stateFromInitForm.description,
+        Currency: "gbp",
+        TokenType:
+          stateFromInitForm.selectedPaySessionType.val === "tokenisation"
+            ? stateFromInitForm.selectedTokenType.val
+            : undefined,
+        PaymentMethod: "credit-card",
+        IdempotencyKey: uuidv4(),
+      };
+  
+      await apiClient.BeginPaySession(input);
+      //Get the sync token ready in the state
+      var token = await getSyncToken();
+      //subscribe to the sync list for this payment session
+      await subscribeToSyncList(token);
+  
+      setStep("in-progress");
+    }
+    catch(error){
+      setStep("not-started");
+      console.error("Error starting payment", error)
+    }
   };
 
-  readonly state: PaymentUiState = {
-    currentCapture: undefined,
-    syncToken: "",
-    aapEvents: [],
-    latestAapState: undefined,
+  const handleChangeCapture = async (paramToCapture: PayCaptureParameter) => {
+    try {
+      apiClient.UpdateCapture({
+        Capturing: paramToCapture,
+        PaymentSid: latestAapState?.Sid ?? "",
+        IdempotencyKey: v4(),
+        CallSid: props.task?.attributes.call_sid,
+      });
+      if(latestAapState){
+        setLatestAapState({...latestAapState, Capture: paramToCapture, PartialResult:true})
+      }
+    } catch {}
   };
 
-  handleStartPayment = async (state: InitFormState) => {
-    await this.apiClient.BeginPaySession({
-      CallSid: this.props.task?.attributes.call_sid,
-      ChargeAmount: state.amount,
-      Description: state.description,
-      Currency: "gbp",
-      TokenType: state.selectedTokenType.val,
-      PaymentMethod: "credit-card",
-      IdempotencyKey: uuidv4(),
-    });
-    //Get the sync token ready in the state
-    await this.getSyncToken();
-    //subscribe to the sync list for this payment session
-    await this.subscribeToSyncList(this.state.syncToken);
-  };
-
-  latestAapEvent = () => {
-    return this.state.aapEvents[this.state.aapEvents.length - 1];
-  };
-
-  handleChangeCapture = async (paramToCapture: PayCaptureParameter) => {
-    await this.setState({ ...this.state, currentCapture: paramToCapture });
-    this.apiClient.UpdateCapture({
-      Capturing: paramToCapture,
-      PaymentSid: this.latestAapEvent().Sid,
+  const handleCompletePayment = async () => {
+    apiClient.CompletePaySession({
+      PaymentSid: latestAapState?.Sid ?? "",
+      CallSid: props.task?.attributes.call_sid ?? "",
       IdempotencyKey: v4(),
-      CallSid: this.props.task?.attributes.call_sid,
     });
-
-    this.setState({...this.state, currentCapture: paramToCapture});
+    setStep("not-started");
   };
 
-  render() {
-    return (
-      <Theme.Provider theme="default">
-        <Grid margin="space0">
-          <Column span={12} gutter="space10">
-            <InitForm handleSubmit={this.handleStartPayment}></InitForm>
-          </Column>
-          <Column span={12} gutter="space10">
-            <CreditCard
-              creditCardNumber={this.state.latestAapState?.PaymentCardNumber}
-              expiryDate={this.state.latestAapState?.ExpirationDate}
-              securityCode={this.state.latestAapState?.SecurityCode}
-              currentCapture={this.state.latestAapState?.Capture ?? this.state.currentCapture}
-              captureInProgress={this.state.latestAapState?.PartialResult}
-              hasError={this.state.latestAapState?.ErrorType === "input-timeout" ? true : false}
-            ></CreditCard>
-          </Column>
-          <Column span={12} gutter="space10">
-            <PayControlCentre
-              handleChangeCapture={this.handleChangeCapture}
-              canComplete={
-                this.state.latestAapState?.Required ?? "" === "" ? true : false
-              }
-            ></PayControlCentre>
-          </Column>
-        </Grid>
-      </Theme.Provider>
-    );
-  }
-}
+  const handleCancelPayment = async () => {
+    apiClient.CancelPaySession({
+      PaymentSid: latestAapState?.Sid ?? "",
+      CallSid: props.task?.attributes.call_sid ?? "",
+      IdempotencyKey: v4(),
+    });
+    setStep("not-started");
+  };
 
-export const PaymentUi = withTaskContext(PaymentUiComponent);
+  return (
+    <Theme.Provider theme="default">
+      <Toaster {...toaster} />
+      <Grid margin="space0">
+        <Column span={12} gutter="space10" hidden={step !== "not-started"}>
+          <InitForm handleSubmit={handleStartPayment}></InitForm>
+        </Column>
+        <Column span={12} gutter="space10" hidden={step !== "in-progress"}>
+          <CreditCard
+            creditCardNumber={latestAapState?.PaymentCardNumber}
+            expiryDate={latestAapState?.ExpirationDate}
+            securityCode={latestAapState?.SecurityCode}
+            currentCapture={latestAapState?.Capture}
+            captureInProgress={latestAapState?.PartialResult}
+            hasError={
+              [
+                "input-timeout",
+                "invalid-card-number",
+                "invalid-date",
+                "date-validation-failed",
+                "invalid-security-code",
+              ].includes(latestAapState?.ErrorType ?? "")
+                ? true
+                : false
+            }
+          ></CreditCard>
+        </Column>
+        <Column span={12} gutter="space10" hidden={step !== "in-progress"}>
+          <PayControlCentre
+            onChangeCapture={handleChangeCapture}
+            onCompletePayment={handleCompletePayment}
+            onCancelPayment={handleCancelPayment}
+            canComplete={latestAapState?.Required ?? "" === "" ? true : false}
+          ></PayControlCentre>
+        </Column>
+        <Column span={2} offset={5} gutter="space10" hidden={step !== "loading"}>
+          <Box>
+            <Text as="p" textAlign="center">
+              <Spinner decorative={false} title="Loading" size="sizeIcon110"/>
+            </Text>
+          </Box>
+        </Column>
+      </Grid>
+    </Theme.Provider>
+  );
+};
+export const PaymentUi = withTaskContext(paymentUiComponent);
