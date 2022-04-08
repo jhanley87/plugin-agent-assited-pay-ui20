@@ -13,8 +13,6 @@ import {
   PaymentListInstanceCreateOptions,
   PaymentPaymentMethod,
 } from "twilio/lib/rest/api/v2010/account/call/payment";
-import CorsResponse from "../utility/cors-response";
-import { SyncListContext } from "twilio/lib/rest/sync/v1/service/syncList";
 
 type MyEvent = {
   ChargeAmount?: number;
@@ -45,6 +43,9 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
     event: MyEvent,
     callback: ServerlessCallback
   ) {
+    const cors = require(Runtime.getFunctions()["utility/cors-response"].path);
+    console.log("CORS", cors);
+
     try {
       await validator(
         event.Token ?? "",
@@ -67,9 +68,9 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
         paymentConnector: context.PAYMENT_CONNECTOR,
         postalCode: false,
         statusCallback: `https://${
-          context.NGROK_ENDPOINT === ""
-            ? context.DOMAIN_NAME
-            : context.NGROK_ENDPOINT
+          context.DOMAIN_NAME?.includes("http://localhost")
+            ? context.NGROK_ENDPOINT
+            : context.DOMAIN_NAME
         }/webhook-ingress`,
         validCardTypes: "visa mastercard amex",
         paymentMethod: event.PaymentMethod,
@@ -96,19 +97,19 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
 
           console.log(`Payment created ${payment.sid}`);
 
-          const resp = CorsResponse.Create(payment, 200);
+          const resp = cors.response(payment, 200);
           console.log("response", resp);
 
-          callback(null, CorsResponse.Create(payment, 200));
+          callback(null, cors.response(payment, 200));
         } catch (error) {
           console.log("Error creating the pay session", error);
-          callback(null, CorsResponse.Create(error, 500));
+          callback(null, cors.response(error, 500));
         }
       } catch (error) {
         console.error("Error creating SyncList", error);
-        callback(null, CorsResponse.Create(error, 500));
+        callback(null, cors.response(error, 500));
       }
     } catch (error) {
-      callback(null, CorsResponse.Create(error, 403));
+      callback(null, cors.response(error, 403));
     }
   };

@@ -9,7 +9,6 @@ import {
 
 import { functionValidator, HandlerFn } from "twilio-flex-token-validator";
 import { PaymentPaymentMethod } from "twilio/lib/rest/api/v2010/account/call/payment";
-import CorsResponse from "../utility/cors-response";
 
 type MyEvent = {
   CallSid?: string;
@@ -27,7 +26,7 @@ export const handler: ServerlessFunctionSignature = async function (
   event: MyEvent,
   callback: ServerlessCallback
 ) {
-  //twilio serverless:logs --tail
+  const cors = require(Runtime.getFunctions()['utility/cors-response'].path)
 
   const client = context.getTwilioClient();
 
@@ -42,12 +41,12 @@ export const handler: ServerlessFunctionSignature = async function (
       });
 
     console.log(
-      `list item created ${syncListItem.listSid}. Beginning pay session`
+      `list item created ${syncListItem.listSid}.`
     );
 
-    callback(null, CorsResponse.Create(syncListItem, 200));
+    callback(null, cors.response(syncListItem, 200));
   } catch (error) {
     console.error("Error creating SyncList item", error);
-    callback(CorsResponse.Create(error, 500), undefined);
+    callback(cors.response(error, 500), undefined);
   }
 };

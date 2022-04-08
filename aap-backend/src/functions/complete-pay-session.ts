@@ -8,10 +8,7 @@ import {
 } from "@twilio-labs/serverless-runtime-types/types";
 
 import { validator } from "twilio-flex-token-validator";
-import {
-  PaymentStatus,
-} from "twilio/lib/rest/api/v2010/account/call/payment";
-import CorsResponse from "../utility/cors-response";
+import { PaymentStatus } from "twilio/lib/rest/api/v2010/account/call/payment";
 
 type MyEvent = {
   PaymentSid: string;
@@ -34,6 +31,8 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
     event: MyEvent,
     callback: ServerlessCallback
   ) {
+    const cors = require(Runtime.getFunctions()["utility/cors-response"].path);
+
     try {
       await validator(
         event.Token ?? "",
@@ -46,7 +45,11 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
       const paymentUpdateOptions = {
         status: "complete" as PaymentStatus,
         idempotencyKey: event.IdempotencyKey,
-        statusCallback: `https://${context.NGROK_ENDPOINT === '' ? context.DOMAIN_NAME : context.NGROK_ENDPOINT}/webhook-ingress`,
+        statusCallback: `https://${
+          context.DOMAIN_NAME?.includes("http://localhost")
+            ? context.NGROK_ENDPOINT
+            : context.DOMAIN_NAME
+        }/webhook-ingress`,
       };
 
       try {
@@ -57,13 +60,13 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
 
         console.log(`Payment completed ${payment.sid}`);
 
-        callback(null, CorsResponse.Create(payment, 200));
+        callback(null, cors.response(payment, 200));
       } catch (error) {
         console.log("Error completing the pay session", error);
-        callback(null, CorsResponse.Create(error, 500));
+        callback(null, cors.response(error, 500));
       }
     } catch (error) {
-      const resp = CorsResponse.Create(error, 403);
+      const resp = cors.response(error, 403);
       callback(null, resp);
     }
   };

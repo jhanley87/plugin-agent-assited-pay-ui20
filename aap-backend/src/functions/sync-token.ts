@@ -9,7 +9,6 @@ import {
 
 import { SyncGrant } from "twilio/lib/jwt/AccessToken";
 import { validator } from "twilio-flex-token-validator";
-import CorsResponse from "../utility/cors-response";
 
 type MyEvent = {
   identity: string;
@@ -33,6 +32,9 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
     event: MyEvent,
     callback: ServerlessCallback
   ) {
+
+    const cors = require(Runtime.getFunctions()['utility/cors-response'].path)
+
     try {
       await validator(
         event.Token ?? "",
@@ -58,14 +60,14 @@ export const handler: ServerlessFunctionSignature<MyContext, MyEvent> =
 
         callback(
           null,
-          CorsResponse.Create({ token: accessToken.toJwt() }, 200)
+          cors.response({ token: accessToken.toJwt() }, 200)
         );
       } catch (error) {
-        const resp = CorsResponse.Create(error, 500);
+        const resp = cors.response(error, 500);
         callback(null, resp);
       }
     } catch (error) {
-      const resp = CorsResponse.Create(error, 403);
+      const resp = cors.response(error, 403);
       callback(null, resp);
     }
   };
