@@ -99,14 +99,16 @@ const paymentUiComponent: React.FC<Props> = (props) => {
         }`,
         variant: "success",
       });
+      resetSession();
     } else if (resultObj.Result === "transaction-cancelled") {
       toaster.push({
         message: `Transaction cancelled`,
         variant: "neutral",
       });
+      resetSession();
     } else {
       toaster.push({
-        message: `Oh no! This transaction was unsuccessful error: ${resultObj.PaymentError}`,
+        message: `Oh no! This transaction was unsuccessful (error: ${resultObj.PaymentError})`,
         variant: "error",
       });
     }
@@ -189,12 +191,12 @@ const paymentUiComponent: React.FC<Props> = (props) => {
   };
 
   const handleCompletePayment = async () => {
+    setStep("loading");
     apiClient.CompletePaySession({
       PaymentSid: latestAapState?.Sid ?? "",
       CallSid: props.task?.attributes.call_sid ?? "",
       IdempotencyKey: v4(),
     });
-    setStep("not-started");
   };
 
   const handleCancelPayment = async () => {
