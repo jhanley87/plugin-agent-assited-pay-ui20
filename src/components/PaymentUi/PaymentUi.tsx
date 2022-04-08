@@ -203,7 +203,7 @@ const paymentUiComponent: React.FC<Props> = (props) => {
       CallSid: props.task?.attributes.call_sid ?? "",
       IdempotencyKey: v4(),
     });
-    setStep("not-started");
+    await resetSession();
   };
 
   return (

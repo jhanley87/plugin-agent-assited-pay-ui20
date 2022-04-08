@@ -1,31 +1,105 @@
-# Your custom Twilio Flex Plugin
+# Background
 
-Twilio Flex Plugins allow you to customize the appearance and behavior of [Twilio Flex](https://www.twilio.com/flex). If you want to learn more about the capabilities and how to use the API, check out our [Flex documentation](https://www.twilio.com/docs/flex).
+Contact centeres often require the ability to be able to capture customer payments securely while talking to them on the phone. Typically this has previously involved some pausing and resuming of call recording and specific compliance rules for agents working in the contact centre. This process can be inefficient and insecure. [Twilio <Pay>](https://www.twilio.com/pay) offers the ability to automate collection of credit card and bank information via DTMF input. `<Pay>` also allows for agents to assist customers while going through the payment details capture process.
 
-## Setup
+This flex plugin and associated backend functions brings the agent assisted `<Pay>` flow to life inside of flex. Being heavily inspired and by slightly plagerising [Adam King's agent assisted pay plugin](https://github.com/aking-twilio/flex-agent-assisted-payments-plugin), this plugin is built for Twilio Flex's latest release of Flex UI 2.0 on top of the [Twilio Paste UI framework](https://paste.twilio.design/)
 
-Make sure you have [Node.js](https://nodejs.org) as well as [`npm`](https://npmjs.com). We support Node >= 10.12 (and recommend the _even_ versions of Node). Afterwards, install the dependencies by running `npm install`:
+## Local Setup
 
-```bash
-cd 
+Make sure you have [Node.js](https://nodejs.org) as well as [`npm`](https://npmjs.com) installed.
 
-# If you use npm
-npm install
-```
-
-Next, please install the [Twilio CLI](https://www.twilio.com/docs/twilio-cli/quickstart) by running:
+You will also need to have the [Twilio CLI](https://www.twilio.com/docs/twilio-cli/quickstart#install-twilio-cli) installed. as well as a couple of Twilio CLI Plugins.
 
 ```bash
-brew tap twilio/brew && brew install twilio
+twilio plugins:install @twilio-labs/plugin-serverless
+twilio plugins:install @twilio-labs/plugin-flex@beta
 ```
 
-Finally, install the [Flex Plugin extension](https://github.com/twilio-labs/plugin-flex/tree/v1-beta) for the Twilio CLI:
+Clone this repository and get the dependencies installed. At the root of the repo run:
+```bash
+npm i
+cd aap-backend
+npm i
+```
+
+## Twilio Configuration
+
+Enable your <Pay /> connector on https://www.twilio.com/console/voice/pay-connectors
+Enable PCI mode for your account on https://www.twilio.com/console/voice/settings
+
+Make a note of the unique name you created for your payment connector.
+
+In a terminal create a Twilio Sync service
+```bash
+twilio api:sync:v1:services:create --friendly-name="Agent Assisted Pay"
+```
+Make a note of the `sid` from the response. Then create an API key
 
 ```bash
-twilio plugins:install @twilio-labs/plugin-flex
+twilio api:core:keys:create \
+    --friendly-name "Payment API Key for Sync"
+```
+Make a note of the `sid` & `secret` from the response.
+
+## Serverless Functions
+This plugin uses serverless functions to control the payment session and ingest webhooks. To set this up, move into the `aap-backend` folder and do the following
+
+```bash
+cp .env.example .env
+```
+Open up the newly created `.env` file and populate the following parameters:
+```
+ACCOUNT_SID= #YOUR TWILIO ACCOUNT SID#
+AUTH_TOKEN= #YOUR TWILIO ACCOUNT AUTH TOKEN#
+SYNC_SERVICE_SID= #YOUR SYNC SERVICE SID#
+PAYMENT_CONNECTOR= #THE NAME OF YOUR PAYMENT CONNECTOR#
+TWILIO_API_SECRET= #YOUR API SECRET#
+TWILIO_API_KEY= #YOUR API KEY SID#
+NGROK_ENDPOINT= #YOUR NGROK DOMAIN (ONLY USED IF YOU WANT TO RUN LOCALLY)#
+```
+## Deploy Functions
+Deploy the backend functions to your Twilio project by running
+
+`twilio serverless:deploy`
+
+Wait a few moments, and your functions should be deployed to Twilio Serverless with a domain like:
+
+`aap-backend-XXXX-dev.twil.io`
+
+Make a note of this Domain. You will need it soon.
+
+## Plugin Development
+
+Return to the main plugin directory. 
+
+`cd ..` 
+
+Copy the example `.env` file
+```bash
+cp .env.example .env
+```
+Open up the newly created `.env` file and populate the following parameters:
+```
+REACT_APP_BACKEND_BASE_URI= #YOUR BACKEND FUNCTION DOMAIN#
 ```
 
-## Development
+## Deploy Plugin
+First, use `twilio login` to create a profile for your deployment. 
+`twilio profiles:list` will show you existing profiles.
 
-Run `twilio flex:plugins --help` to see all the commands we currently support. For further details on Flex Plugins refer to our documentation on the [Twilio Docs](https://www.twilio.com/docs/flex/developer/plugins/cli) page.
+Make sure you are switched to the correct project using `twilio profiles:use <Name_Of_Profile>` before running your deployment.
 
+Run the following command to start the bundling:
+
+```bash
+twilio flex:plugins:deploy
+```
+
+Follow the 'Next Steps' in the CLI in order to package this as part of a release within Flex. The command to release the plugin on its own will look something like:
+
+`twilio flex:plugins:release --plugin plugin-pay@0.0.1 --name "Autogenerated Release" --description "The description of this Flex Plugin Configuration"`
+
+Once this is done, you can make a call into Flex to test your configuration! 
+
+## Customisation
+Customise this plugin to fit your specific requirements and then redeploy it following the above deployment process
