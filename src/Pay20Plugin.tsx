@@ -24,7 +24,7 @@ export default class Pay20Plugin extends FlexPlugin {
     this.registerReducers(manager);
 
     const options: Flex.ContentFragmentProps = { sortOrder: -1 };
-    flex.AgentDesktopView.Panel2.Content.replace(
+    flex.AgentDesktopView.Panel2.Content.add(
       <PaymentUi key="PaymentUi" />,
       options
     );

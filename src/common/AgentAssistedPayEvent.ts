@@ -26,4 +26,5 @@ export default interface AgentAssistedPayEvent {
     PaymentError: string | undefined;
     PaymentConfirmationCode: string;
     PaymentToken: string;
+    ProfileId: string;
   }
