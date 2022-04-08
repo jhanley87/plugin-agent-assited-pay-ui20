@@ -1,4 +1,4 @@
-# Agent Assisted Twilio Pay Plugin for Flex (Flex UI 2.0)
+# Agent Assisted Twilio Pay Plugin for Flex UI 2.0
 ![gif of code in action](/misc/pay.gif)
 ## Background
 
