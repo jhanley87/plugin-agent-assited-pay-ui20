@@ -111,6 +111,7 @@ const paymentUiComponent: React.FC<Props> = (props) => {
         message: `Oh no! This transaction was unsuccessful (error: ${resultObj.PaymentError})`,
         variant: "error",
       });
+      setStep("in-progress");
     }
   };
 
