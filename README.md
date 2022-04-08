@@ -1,4 +1,6 @@
-# Background
+# Agent Assisted Twilio Pay Plugin for Flex (Flex UI 2.0)
+![gif of code in action](/misc/pay.gif)
+## Background
 
 Contact centres often require the ability to be able to capture customer payments securely while talking to them on the phone. Typically this has previously involved some pausing and resuming of call recording and specific compliance rules for agents working in the contact centre. This process can be inefficient and insecure. [Twilio <Pay>](https://www.twilio.com/pay) offers the ability to automate collection of credit card and bank information via DTMF input. `<Pay>` also allows for agents to assist customers while going through the payment details capture process.
 
@@ -23,6 +25,7 @@ npm i
 ```
 
 ## Twilio Configuration
+note: Twilio flex UI 2.0 is a pre-requisite for this plugin
 
 Enable your <Pay /> connector on https://www.twilio.com/console/voice/pay-connectors
 Enable PCI mode for your account on https://www.twilio.com/console/voice/settings

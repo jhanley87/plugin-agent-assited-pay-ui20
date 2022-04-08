@@ -3,6 +3,7 @@ import ApiRequests from "./requests/ApiRequests";
 import BeginPayRequest from "./requests/BeginPayRequest";
 import CancelPayRequest from "./requests/CancelPayRequest";
 import CompletePayRequest from "./requests/CompletePayRequest";
+import TryRemoveSyncDocRequest from "./requests/TryRemoveSyncDocRequest";
 import UpdateCaptureRequest from "./requests/UpdateCaptureRequest";
 import SyncTokenResponse from "./responses/SyncTokenResponse";
 export default class Api {
@@ -33,6 +34,12 @@ export default class Api {
 
   public async UpdateCapture(input: UpdateCaptureRequest) {
     const resp = await this.postApiRequest(ApiRequests.UpdateCapture, input);
+
+    return resp;
+  }
+
+  public async TryRemoveSyncDoc(input: TryRemoveSyncDocRequest) {
+    const resp = await this.postApiRequest(ApiRequests.TryRemoveSyncDoc, input);
 
     return resp;
   }

@@ -43,6 +43,7 @@ const paymentUiComponent: React.FC<Props> = (props) => {
     setAapEvents([]);
     setLatestAapState(undefined);
     setStep("not-displayed");
+    apiClient.TryRemoveSyncDoc({CallSid: props.task?.attributes.call_sid})
   };
 
   useEffect(() => {
@@ -111,7 +112,7 @@ const paymentUiComponent: React.FC<Props> = (props) => {
         message: `Oh no! This transaction was unsuccessful (error: ${resultObj.PaymentError})`,
         variant: "error",
       });
-      setStep("in-progress");
+      resetSession();
     }
   };
 
@@ -201,12 +202,12 @@ const paymentUiComponent: React.FC<Props> = (props) => {
   };
 
   const handleCancelPayment = async () => {
+    setStep("loading");
     apiClient.CancelPaySession({
       PaymentSid: latestAapState?.Sid ?? "",
       CallSid: props.task?.attributes.call_sid ?? "",
       IdempotencyKey: v4(),
     });
-    await resetSession();
   };
 
   return (

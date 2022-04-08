@@ -9,4 +9,5 @@ export default class ApiRequests {
     public static SyncToken: string = `${this.baseUri}/sync-token`;
     public static WebhookIngress: string = `${this.baseUri}/webhook-ingress`;
     public static CancelPay: string = `${this.baseUri}/cancel-pay-session`;
+    public static TryRemoveSyncDoc: string = `${this.baseUri}/try-remove-sync-doc`;
 }
