@@ -1,8 +1,6 @@
 import { AppState as FlexAppState } from '@twilio/flex-ui';
 import { combineReducers, Action as ReduxAction } from 'redux';
 
-import { CustomTaskListState, reduce as CustomTaskListReducer } from './CustomTaskListState';
-
 // Register your redux store under a unique namespace
 export const namespace = 'pay-20';
 
@@ -15,12 +13,10 @@ export interface Action extends ReduxAction {
 export interface AppState {
   flex: FlexAppState;
   'pay-20': {
-    customTaskList: CustomTaskListState;
     // Other states
   };
 }
 
 // Combine the reducers
 export default combineReducers({
-  customTaskList: CustomTaskListReducer,
 });
